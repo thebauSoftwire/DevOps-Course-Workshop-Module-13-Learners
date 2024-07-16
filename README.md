@@ -128,22 +128,29 @@ We need to improve this:
 
 Within your resource group create a new Application Insights resource.
 
-Find the connection string (containing a sensitive "instrumentation key") on the overview page of your Application Insights resource. Rather than hardcoding the connection string in the Python code, configure it securely by using an environment variable called `APPLICATIONINSIGHTS_CONNECTION_STRING`. Set this on the 'Configuration' page of the App Service.
+Find the connection string (containing a sensitive "instrumentation key") on the overview page of your Application Insights resource. Rather than hardcoding the connection string in the Python code, configure it securely by using an environment variable called `APPLICATIONINSIGHTS_CONNECTION_STRING`. Set this on the 'Environment Variables' page of the App Service.
 
-> Don't forget to click the `Save` button at the top of the Configuration page after making changes!
+> Don't forget to click the `Apply` button at the bottom of the Environment Variables page after making changes!
 
-To actually send logs to Application Insights you'll need to add the Python packages `opencensus-ext-azure` and `opencensus-ext-flask` to requirements.txt.
-It's a good habit to specify a version when adding these: you can find the latest version specified on the Python Package Index page for [the Azure extension](https://pypi.org/project/opencensus-ext-azure/) and [the Flask extension](https://pypi.org/project/opencensus-ext-flask/) respectively.
+To actually send logs to Application Insights you'll need to add the Python packages `azure-monitor-opentelemetry` to requirements.txt.
+It's a good habit to specify a version when adding these: you can find the latest version specified on the Python Package Index page for [the Azure extension](https://pypi.org/project/azure-monitor-opentelemetry/).
 
-Next, add the middleware to `app.py` by adapting this sample code: <https://docs.microsoft.com/en-us/azure/azure-monitor/app/opencensus-python-request#tracking-flask-applications>. That middleware will log all requests to your Flask app (like every time you view the webpage) and the `AzureExporter` will send those logs to Application Insights.
+Next, we configure the logging in `app.py` by adapting this sample code: <https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/monitor/azure-monitor-opentelemetry/samples/tracing/http_flask.py>. This will log all requests to your Flask app (like every time you view the webpage) and the in-built exporter will send those logs to Application Insights.
 
-> The environment variable gets picked up automatically so your code doesn't need to pass anything into `AzureExporter()`. Just make sure the application setting in Azure is the whole connection string, including `InstrumentationKey=`!
+> The environment variable gets picked up automatically so your code doesn't need to pass it directly into the `configure_azure_monitor()` call. Just make sure the application setting in Azure is the whole connection string, including `InstrumentationKey=`!
 
-Finally, to send `logger.info` messages there too, register a "log handler". Import `AzureLogHandler` from `opencensus.ext.azure.log_exporter`, then add it as a handler for our Flask app logs:
-
-```python
-app.logger.addHandler(AzureLogHandler())
-```
+> Note that the auto-configuration relies on a strict ordering and flask needs to be _imported_ after we have run the configuration - so you may have code like:
+> ```python
+> from azure.monitor.opentelemetry import configure_azure_monitor
+> import logging
+>
+> logging.basicConfig(level=logging.INFO)
+> configure_azure_monitor()
+>
+> from flask import Flask, render_template, request
+> app = Flask(__name__)
+> ...
+> ```
 
 A few minutes after deploying your changes (App Insights batches up log messages) you can see the logs.
 Go the App Insights resource and then navigate to `Logs`.
@@ -182,6 +189,17 @@ You'll need to click on the condition to set it to alert when there is 1 or more
 Back in App Insights under Alerts you'll see an alert is raised.
 With the default settings this will take up to 5 minutes.
 If you set up emails above you'll start to receive these.
+
+## Add Live Metrics
+
+You may have noticed that even once the app is reporting logs to App Insights they lag the system slightly, e.g. searching your traces may not show logging statements from more than a minute ago. In many cases this is sufficient, but there may be times that we want lower latency on our stats - for example whilst monitoring a release.
+
+Azure offers ["Live Metrics"](https://learn.microsoft.com/en-us/azure/azure-monitor/app/live-stream?tabs=otel) to help with this. Try turning that on now by adjusting your setup command to:
+```python
+configure_azure_monitor(enable_live_metrics = True)
+```
+
+Once that's deployed, check out the "Live Metrics" tab (under the "Investigate" menu) in Application Insights. Again, it might take a few minutes to appear, but once it does you'll see that the traces on display are coming through within a second or two of being generated.
 
 ## Improve the queue
 
