@@ -1,16 +1,15 @@
 name: Deploy
-on: 
-  push
+on: push
 
 jobs:
   my-job:
     runs-on: ubuntu-latest
     env:
-        # REPLACE THIS
-        DOCKERHUB_USERNAME: corndeldevopscourse
-        # SET THESE IN GITHUB
-        DOCKERHUB_TOKEN: '${{ secrets.DOCKERHUB_TOKEN }}'
-        AZURE_WEBHOOK: '${{ secrets.AZURE_WEBHOOK }}'
+      # REPLACE THIS
+      DOCKERHUB_USERNAME: thebau
+      # SET THESE IN GITHUB
+      DOCKERHUB_TOKEN: "${{ secrets.DOCKERHUB_TOKEN }}"
+      AZURE_WEBHOOK: "${{ secrets.AZURE_WEBHOOK }}"
     # DECIDE WHETHER YOU WANT A BRANCH CHECK - if so remove the other "if"
     # if: github.ref == 'refs/heads/master'
     if: github.repository != 'corndeladmin/DevOps-Course-Workshop-Module-13-Learners'
