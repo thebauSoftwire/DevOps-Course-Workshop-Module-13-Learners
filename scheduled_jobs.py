@@ -27,7 +27,7 @@ def process_orders(app):
         payload = {
             "product": order.product,
             "customer": order.customer,
-            "date": order.date_placed.isoformat(),
+            "date": order.date_placed_local.isoformat(),
         }
 
         app.logger.info("Making request to: " + app.config["FINANCE_PACKAGE_URL"] + "/ProcessPayment")
